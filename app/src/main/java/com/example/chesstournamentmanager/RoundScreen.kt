@@ -16,11 +16,18 @@ fun RoundScreen(
     roundNumber: Int,
     pairs: List<Pair<Player, Player>>,
     onRoundComplete: (List<Pair<Pair<Player, Player>, Pair<Float, Float>>>) -> Unit,
-    onBackToSettings: () -> Unit
+    onBackToSettings: () -> Unit,
+    system: String // Dodaj system jako parametr
 ) {
     // Przechowywanie wyników każdej pary
     var results by remember {
-        mutableStateOf(pairs.map { it to (0f to 0f) }) // Domyślny wynik: remis
+        mutableStateOf(pairs.map { pair ->
+            if (pair.second.isBye) {
+                pair to (1f to 0f) // Automatycznie 1 punkt dla gracza bez przeciwnika
+            } else {
+                pair to (0f to 0f) // Domyślny wynik: remis
+            }
+        })
     }
 
     Column(
@@ -51,26 +58,32 @@ fun RoundScreen(
                 }
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Button(onClick = {
-                        results = results.toMutableList().apply {
-                            this[index] = this[index].first to (1f to 0f) // 1:0
+                    if (player2.isBye) {
+                        Text("Automatyczny wynik")
+                    } else {
+                        Button(onClick = {
+                            results = results.toMutableList().apply {
+                                this[index] = this[index].first to (1f to 0f) // 1:0
+                            }
+                        }) {
+                            Text("1:0")
                         }
-                    }) {
-                        Text("1:0")
-                    }
-                    Button(onClick = {
-                        results = results.toMutableList().apply {
-                            this[index] = this[index].first to (0f to 1f) // 0:1
+                        Button(onClick = {
+                            results = results.toMutableList().apply {
+                                this[index] = this[index].first to (0f to 1f) // 0:1
+                            }
+                        }) {
+                            Text("0:1")
                         }
-                    }) {
-                        Text("0:1")
-                    }
-                    Button(onClick = {
-                        results = results.toMutableList().apply {
-                            this[index] = this[index].first to (0.5f to 0.5f) // 0.5:0.5
+                        if (system == "Szwajcarski") {
+                            Button(onClick = {
+                                results = results.toMutableList().apply {
+                                    this[index] = this[index].first to (0.5f to 0.5f) // 0.5:0.5
+                                }
+                            }) {
+                                Text("0.5:0.5")
+                            }
                         }
-                    }) {
-                        Text("0.5:0.5")
                     }
                 }
 
@@ -100,4 +113,5 @@ fun RoundScreen(
         }
     }
 }
+
 

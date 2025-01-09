@@ -13,6 +13,7 @@ import com.example.chesstournamentmanager.data.Player
 @Composable
 fun TournamentResultsScreen(
     results: Map<Player, Float>,
+    system: String, // Dodano parametr systemu
     onRestartTournament: () -> Unit
 ) {
     Column(
@@ -27,15 +28,15 @@ fun TournamentResultsScreen(
             style = MaterialTheme.typography.headlineSmall
         )
 
-        // Obsługa przypadku systemu pucharowego
-        if (results.size == 1) {
+        if (system == "Pucharowy" && results.size == 1) {
+            // Wyświetl tylko zwycięzcę w przypadku systemu pucharowego
             val winner = results.keys.first()
             Text(
                 text = "Zwycięzca turnieju: ${winner.name}",
                 style = MaterialTheme.typography.titleMedium
             )
         } else {
-            // Standardowe wyświetlanie wyników zawodników
+            // Wyświetl tabelę wyników w przypadku systemu szwajcarskiego
             results.entries.sortedByDescending { it.value }.forEach { (player, score) ->
                 Text(text = "${player.name}: ${score} pkt")
             }
@@ -52,3 +53,4 @@ fun TournamentResultsScreen(
         }
     }
 }
+
