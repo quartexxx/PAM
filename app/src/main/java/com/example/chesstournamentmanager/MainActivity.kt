@@ -19,6 +19,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.room.Room
 import com.example.chesstournamentmanager.data.AppDatabase
 import com.example.chesstournamentmanager.data.Player
+import com.example.chesstournamentmanager.ui.CumulativeResultsScreen
+import com.example.chesstournamentmanager.ui.RoundResultsScreen
 import com.example.chesstournamentmanager.ui.TournamentResultsScreen
 import com.example.chesstournamentmanager.ui.theme.ChessTournamentManagerTheme
 import kotlinx.coroutines.launch
@@ -153,7 +155,6 @@ class MainActivity : ComponentActivity() {
                                 RoundScreen(
                                     roundNumber = roundNumber,
                                     pairs = selectedPairs,
-                                    system = selectedSystem.value,
                                     onRoundComplete = { results ->
                                         matchResults.addAll(results)
 
@@ -169,11 +170,12 @@ class MainActivity : ComponentActivity() {
                                             navController.navigate("tournament_results")
                                         }
                                     },
-                                    onBackToSettings = {
-                                        navController.navigate("configure_tournament")
-                                    }
+                                    onBackToSettings = { navController.navigate("configure_tournament") },
+                                    system = selectedSystem.value,
+                                    navController = navController
                                 )
                             }
+
 
                             composable("tournament_results") {
                                 val finalResults: Map<Player, Float> = calculateTieBreakResults(
@@ -198,7 +200,24 @@ class MainActivity : ComponentActivity() {
                                     }
                                 )
                             }
+                            composable("round_results") {
+                                RoundResultsScreen(
+                                    roundResults = matchResults,
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
 
+                            composable("cumulative_results") {
+                                val cumulativeResults = matchResults.flatMap { (pair, scores) ->
+                                    listOf(pair.first to scores.first, pair.second to scores.second)
+                                }.groupBy({ it.first }, { it.second })
+                                    .mapValues { (_, scores) -> scores.sum() }
+
+                                CumulativeResultsScreen(
+                                    cumulativeResults = cumulativeResults,
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
 
 
 

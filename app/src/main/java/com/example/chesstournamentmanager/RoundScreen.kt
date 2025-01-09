@@ -4,11 +4,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.example.chesstournamentmanager.data.Player
 
 @Composable
@@ -17,7 +17,8 @@ fun RoundScreen(
     pairs: List<Pair<Player, Player>>,
     onRoundComplete: (List<Pair<Pair<Player, Player>, Pair<Float, Float>>>) -> Unit,
     onBackToSettings: () -> Unit,
-    system: String // Dodano parametr systemu
+    system: String, // Dodano parametr systemu
+    navController: NavController // Przekazanie kontrolera nawigacji
 ) {
     var results by remember {
         mutableStateOf(pairs.map { pair ->
@@ -98,6 +99,22 @@ fun RoundScreen(
             Text("Zakończ rundę")
         }
 
+        // Przycisk wyświetlania wyników zbiorczych
+        Button(
+            onClick = { navController.navigate("cumulative_results") },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Pokaż wyniki zbiorcze")
+        }
+
+        // Przycisk wyświetlania wyników rund
+        Button(
+            onClick = { navController.navigate("round_results") },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Pokaż wyniki rund")
+        }
+
         Button(
             onClick = onBackToSettings,
             modifier = Modifier.fillMaxWidth()
@@ -106,5 +123,3 @@ fun RoundScreen(
         }
     }
 }
-
-
