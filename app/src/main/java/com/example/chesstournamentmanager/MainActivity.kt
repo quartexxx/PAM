@@ -53,6 +53,7 @@ class MainActivity : ComponentActivity() {
                             navController = navController,
                             startDestination = "add_players"
                         ) {
+                            // Ekran dodawania zawodników
                             composable("add_players") {
                                 AddPlayerScreen(
                                     players = players,
@@ -77,6 +78,7 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
 
+                            // Ekran wyboru zawodników
                             composable("select_players") {
                                 SelectPlayersScreen(
                                     players = players,
@@ -88,10 +90,26 @@ class MainActivity : ComponentActivity() {
                                         }
                                     },
                                     onProceed = {
-                                        println("Wybrani zawodnicy: ${selectedPlayers.map { it.name }}")
+                                        navController.navigate("configure_tournament") // Nawigacja do konfiguracji turnieju
                                     },
                                     onBackToAddPlayers = {
-                                        navController.navigate("add_players")
+                                        navController.navigate("add_players") // Nawigacja do ekranu dodawania zawodników
+                                    },
+                                    navController = navController // Przekazanie navController
+                                )
+                            }
+
+
+                            // Ekran konfiguracji turnieju
+                            composable("configure_tournament") {
+                                ConfigureTournamentScreen(
+                                    selectedPlayers = selectedPlayers,
+                                    onStartTournament = { system, rounds, tieBreak ->
+                                        println("System: $system, Liczba rund: $rounds, TieBreak: $tieBreak")
+                                        // Tutaj możesz dodać logikę rozpoczynania turnieju
+                                    },
+                                    onBackToSelectPlayers = {
+                                        navController.navigate("select_players")
                                     }
                                 )
                             }
