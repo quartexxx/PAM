@@ -48,6 +48,7 @@ class MainActivity : ComponentActivity() {
                 val matchResults = remember { mutableStateListOf<Pair<Pair<Player, Player>, Pair<Float, Float>>>() }
                 val playedPairs = remember { mutableSetOf<Pair<Player, Player>>() }
                 val byePlayer = Player(name = "Wolny Los", isBye = true)
+                val selectedSystem = remember { mutableStateOf("Szwajcarski") } // Przechowywanie wybranego systemu
                 val navController = rememberNavController()
 
                 LaunchedEffect(Unit) {
@@ -112,15 +113,16 @@ class MainActivity : ComponentActivity() {
                                 ConfigureTournamentScreen(
                                     selectedPlayers = selectedPlayers,
                                     onStartTournament = { system, _, _ ->
+                                        selectedSystem.value = system // Ustawienie wybranego systemu
                                         lifecycleScope.launch {
                                             selectedPairs.clear()
                                             matchResults.clear()
                                             playedPairs.clear()
 
-                                            if (system == "Szwajcarski") {
-                                                totalRounds.value = ceil(log2(selectedPlayers.size.toDouble())).toInt()
-                                            } else if (system == "Pucharowy") {
-                                                totalRounds.value = ceil(log2(selectedPlayers.size.toDouble())).toInt()
+                                            totalRounds.value = if (system == "Szwajcarski") {
+                                                ceil(log2(selectedPlayers.size.toDouble())).toInt()
+                                            } else {
+                                                ceil(log2(selectedPlayers.size.toDouble())).toInt()
                                             }
 
                                             val playersForPairing = selectedPlayers.toMutableList()
@@ -128,27 +130,14 @@ class MainActivity : ComponentActivity() {
                                                 playersForPairing.add(byePlayer)
                                             }
 
-                                            // Generacja początkowych par
-                                            if (system == "Szwajcarski") {
-                                                val sortedPlayers = playersForPairing.sortedByDescending { it.rating ?: 0 }
-                                                for (i in sortedPlayers.indices step 2) {
-                                                    if (i + 1 < sortedPlayers.size) {
-                                                        val pair = Pair(sortedPlayers[i], sortedPlayers[i + 1])
-                                                        selectedPairs.add(pair)
-                                                        playedPairs.add(pair)
-                                                    }
-                                                }
-                                            } else if (system == "Pucharowy") {
-                                                val sortedPlayers = playersForPairing.sortedBy { it.rating ?: 0 }
-                                                for (i in sortedPlayers.indices step 2) {
-                                                    if (i + 1 < sortedPlayers.size) {
-                                                        val pair = Pair(sortedPlayers[i], sortedPlayers[i + 1])
-                                                        selectedPairs.add(pair)
-                                                        playedPairs.add(pair)
-                                                    }
+                                            val sortedPlayers = playersForPairing.sortedBy { it.rating ?: 0 }
+                                            for (i in sortedPlayers.indices step 2) {
+                                                if (i + 1 < sortedPlayers.size) {
+                                                    val pair = Pair(sortedPlayers[i], sortedPlayers[i + 1])
+                                                    selectedPairs.add(pair)
+                                                    playedPairs.add(pair)
                                                 }
                                             }
-
                                             navController.navigate("round_screen/1")
                                         }
                                     },
@@ -158,19 +147,18 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
 
-
-
                             composable("round_screen/{roundNumber}") { backStackEntry ->
                                 val roundNumber = backStackEntry.arguments?.getString("roundNumber")?.toInt() ?: 1
                                 RoundScreen(
                                     roundNumber = roundNumber,
                                     pairs = selectedPairs,
+                                    system = selectedSystem.value,
                                     onRoundComplete = { results ->
                                         matchResults.addAll(results)
 
                                         if (roundNumber < totalRounds.value) {
                                             val updatedPairs = generateNextRoundPairs(
-                                                results, playedPairs, byePlayer, system = "Szwajcarski"
+                                                results, playedPairs, byePlayer, selectedSystem.value
                                             )
                                             selectedPairs.clear()
                                             selectedPairs.addAll(updatedPairs)
@@ -182,30 +170,20 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onBackToSettings = {
                                         navController.navigate("configure_tournament")
-                                    },
-                                    system = "Szwajcarski" // lub "Pucharowy", w zależności od wybranego systemu
+                                    }
                                 )
                             }
 
-
                             composable("tournament_results") {
-                                // Obliczanie wyników końcowych
-                                val finalResults: Map<Player, Float> = matchResults
-                                    .flatMap { (pair, scores) ->
-                                        listOf(
-                                            pair.first to scores.first,
-                                            pair.second to scores.second
-                                        )
-                                    }
-                                    .groupBy({ it.first }, { it.second })
-                                    .mapValues { (_, scores) -> scores.sum() }
+                                val finalResults = calculateFinalResults(
+                                    matchResults, selectedSystem.value
+                                )
 
                                 TournamentResultsScreen(
                                     results = finalResults,
-                                    system = selectedSystem.value, // Użycie wybranego systemu
+                                    system = selectedSystem.value,
                                     onRestartTournament = {
                                         lifecycleScope.launch {
-                                            // Resetowanie danych turnieju
                                             selectedPlayers.clear()
                                             selectedPairs.clear()
                                             matchResults.clear()
@@ -218,8 +196,6 @@ class MainActivity : ComponentActivity() {
                                     }
                                 )
                             }
-
-
                         }
                     }
                 )
@@ -236,22 +212,19 @@ class MainActivity : ComponentActivity() {
         val pairs = mutableListOf<Pair<Player, Player>>()
 
         if (system == "Szwajcarski") {
-            // Aktualizacja punktów graczy
             val updatedPlayers = results.flatMap { (pair, scores) ->
                 listOf(pair.first to scores.first, pair.second to scores.second)
             }
                 .groupBy({ it.first }, { it.second })
                 .map { (player, scores) -> player to scores.sum() }
-                .sortedByDescending { it.second } // Sortowanie według punktów
+                .sortedByDescending { it.second }
 
             val remainingPlayers = updatedPlayers.map { it.first }.toMutableList()
 
-            // Dodanie wolnego losu, jeśli liczba graczy jest nieparzysta
             if (remainingPlayers.size % 2 != 0) {
                 remainingPlayers.add(byePlayer)
             }
 
-            // Generowanie par
             while (remainingPlayers.size > 1) {
                 val player1 = remainingPlayers.removeAt(0)
                 val opponent = remainingPlayers.firstOrNull { player2 ->
@@ -269,7 +242,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         } else if (system == "Pucharowy") {
-            // Logika systemu pucharowego
             val qualifiedPlayers = results.filter { it.second.first > it.second.second }
                 .map { it.first.first } + results.filter { it.second.second > it.second.first }
                 .map { it.first.second }
@@ -289,5 +261,22 @@ class MainActivity : ComponentActivity() {
         return pairs
     }
 
-
+    private fun calculateFinalResults(
+        matchResults: List<Pair<Pair<Player, Player>, Pair<Float, Float>>>,
+        system: String
+    ): Map<Player, Float> {
+        return if (system == "Szwajcarski") {
+            matchResults.flatMap { (pair, scores) ->
+                listOf(pair.first to scores.first, pair.second to scores.second)
+            }
+                .groupBy({ it.first }, { it.second })
+                .mapValues { (_, scores) -> scores.sum() }
+        } else {
+            // Tylko zwycięzca
+            val winner = matchResults.lastOrNull()?.let {
+                if (it.second.first > it.second.second) it.first.first else it.first.second
+            }
+            if (winner != null) mapOf(winner to 1f) else emptyMap()
+        }
+    }
 }
