@@ -27,9 +27,18 @@ fun TournamentResultsScreen(
             style = MaterialTheme.typography.headlineSmall
         )
 
-        // Wyświetlanie wyników zawodników
-        results.entries.sortedByDescending { it.value }.forEach { (player, score) ->
-            Text(text = "${player.name}: ${score} pkt")
+        // Obsługa przypadku systemu pucharowego
+        if (results.size == 1) {
+            val winner = results.keys.first()
+            Text(
+                text = "Zwycięzca turnieju: ${winner.name}",
+                style = MaterialTheme.typography.titleMedium
+            )
+        } else {
+            // Standardowe wyświetlanie wyników zawodników
+            results.entries.sortedByDescending { it.value }.forEach { (player, score) ->
+                Text(text = "${player.name}: ${score} pkt")
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -43,6 +52,3 @@ fun TournamentResultsScreen(
         }
     }
 }
-
-
-
