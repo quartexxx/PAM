@@ -1,11 +1,13 @@
 package com.example.chesstournamentmanager
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -15,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.chesstournamentmanager.data.Player
+import androidx.compose.ui.Alignment
 
 @Composable
 fun AddPlayerScreen(
@@ -29,8 +32,15 @@ fun AddPlayerScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(24.dp), // Większy margines na całym ekranie
+        verticalArrangement = Arrangement.spacedBy(16.dp), // Równe odstępy między elementami
+        horizontalAlignment = Alignment.CenterHorizontally // Wyśrodkowanie elementów
     ) {
+        Text(
+            text = "Dodaj zawodnika",
+            style = MaterialTheme.typography.headlineSmall // Większy, estetyczny nagłówek
+        )
+
         TextField(
             value = playerName.value,
             onValueChange = { playerName.value = it },

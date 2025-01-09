@@ -58,6 +58,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation("androidx.room:room-ktx:2.6.1")
     implementation("androidx.navigation:navigation-compose:2.6.0")
+    implementation("androidx.compose.material3:material3:1.2.0")
 
     // Room dependencies
     implementation(libs.room.runtime)

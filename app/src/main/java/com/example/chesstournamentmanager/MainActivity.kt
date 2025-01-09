@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -38,10 +39,11 @@ class MainActivity : ComponentActivity() {
                 val selectedPlayers = remember { mutableStateListOf<Player>() }
                 val navController = rememberNavController()
 
-                // Pobierz zawodników z bazy przy starcie
-                lifecycleScope.launch {
+                // Pobierz zawodników z bazy przy starcie w LaunchedEffect
+                LaunchedEffect(Unit) {
+                    val allPlayers = db.playerDao().getAllPlayers()
                     players.clear()
-                    players.addAll(db.playerDao().getAllPlayers())
+                    players.addAll(allPlayers)
                 }
 
                 Scaffold(
@@ -58,8 +60,9 @@ class MainActivity : ComponentActivity() {
                                         lifecycleScope.launch {
                                             val player = Player(name = name, rating = rating)
                                             db.playerDao().insert(player)
+                                            val allPlayers = db.playerDao().getAllPlayers()
                                             players.clear()
-                                            players.addAll(db.playerDao().getAllPlayers())
+                                            players.addAll(allPlayers)
                                         }
                                     },
                                     onClearPlayers = {
