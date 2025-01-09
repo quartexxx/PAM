@@ -181,12 +181,17 @@ class MainActivity : ComponentActivity() {
                                         emptyMap() // Jeśli winner jest null, zwracamy pustą mapę
                                     },
                                     onRestartTournament = {
-                                        selectedPlayers.clear()
-                                        selectedPairs.clear()
-                                        matchResults.clear()
-                                        playedPairs.clear()
-                                        totalRounds.value = 0
-                                        navController.popBackStack("add_players", inclusive = true)
+                                        lifecycleScope.launch {
+                                            db.playerDao().deleteAllPlayers()
+                                            selectedPlayers.clear()
+                                            selectedPairs.clear()
+                                            matchResults.clear()
+                                            playedPairs.clear()
+                                            totalRounds.value = 0
+                                            navController.navigate("add_players") {
+                                                popUpTo(0)
+                                            }
+                                        }
                                     }
                                 )
 
