@@ -1,5 +1,6 @@
 package com.example.chesstournamentmanager.data
 
+import androidx.lifecycle.LiveData
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
@@ -14,4 +15,8 @@ interface PlayerDao {
 
     @Query("DELETE FROM players")
     suspend fun deleteAllPlayers()
+
+    @Query("SELECT * FROM players")
+    fun getAllPlayersLive(): LiveData<List<Player>>
+
 }
