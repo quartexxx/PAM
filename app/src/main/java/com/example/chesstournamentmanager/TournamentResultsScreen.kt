@@ -29,14 +29,14 @@ fun TournamentResultsScreen(
         )
 
         if (system == "Pucharowy" && results.size == 1) {
-            // Wyświetl tylko zwycięzcę w przypadku systemu pucharowego
+            // Dla systemu pucharowego wyświetl zwycięzcę
             val winner = results.keys.first()
             Text(
                 text = "Zwycięzca turnieju: ${winner.name}",
                 style = MaterialTheme.typography.titleMedium
             )
         } else {
-            // Wyświetl tabelę wyników w przypadku systemu szwajcarskiego
+            // Dla innych systemów wyświetl pełną tabelę wyników
             results.entries.sortedByDescending { it.value }.forEach { (player, score) ->
                 Text(text = "${player.name}: ${score} pkt")
             }
@@ -44,7 +44,6 @@ fun TournamentResultsScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Przycisk rozpoczęcia nowego turnieju
         Button(
             onClick = onRestartTournament,
             modifier = Modifier.fillMaxWidth()

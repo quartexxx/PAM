@@ -176,17 +176,16 @@ class MainActivity : ComponentActivity() {
                             }
 
                             composable("tournament_results") {
-                                val finalResults = calculateTieBreakResults(
+                                val finalResults: Map<Player, Float> = calculateTieBreakResults(
                                     matchResults = matchResults,
                                     tieBreak = selectedTieBreak.value
                                 )
 
                                 TournamentResultsScreen(
                                     results = finalResults,
-                                    system = selectedSystem.value, // Przekazanie wybranego systemu turniejowego
+                                    system = selectedSystem.value, // Przekazujemy wybrany system
                                     onRestartTournament = {
                                         lifecycleScope.launch {
-                                            // Resetowanie stanu turnieju
                                             selectedPlayers.clear()
                                             selectedPairs.clear()
                                             matchResults.clear()
@@ -199,6 +198,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 )
                             }
+
 
 
                         }

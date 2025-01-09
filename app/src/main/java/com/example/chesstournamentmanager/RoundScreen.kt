@@ -17,13 +17,13 @@ fun RoundScreen(
     pairs: List<Pair<Player, Player>>,
     onRoundComplete: (List<Pair<Pair<Player, Player>, Pair<Float, Float>>>) -> Unit,
     onBackToSettings: () -> Unit,
-    system: String // Dodaj system jako parametr
+    system: String // Dodano parametr systemu
 ) {
-    // Przechowywanie wyników każdej pary
     var results by remember {
         mutableStateOf(pairs.map { pair ->
-            if (pair.second.isBye) {
-                pair to (1f to 0f) // Automatycznie 1 punkt dla gracza bez przeciwnika
+            if (pair.first.isBye || pair.second.isBye) {
+                if (pair.first.isBye) pair to (0f to 1f)
+                else pair to (1f to 0f) // Automatyczne przyznanie punktów dla "Wolnego Losu"
             } else {
                 pair to (0f to 0f) // Domyślny wynik: remis
             }
@@ -42,7 +42,6 @@ fun RoundScreen(
             style = MaterialTheme.typography.headlineSmall
         )
 
-        // Wyświetlanie par zawodników z przyciskami wyboru wyniku
         results.forEachIndexed { index, pairResult ->
             val (player1, player2) = pairResult.first
             val (score1, score2) = pairResult.second
@@ -58,9 +57,7 @@ fun RoundScreen(
                 }
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    if (player2.isBye) {
-                        Text("Automatyczny wynik")
-                    } else {
+                    if (!player1.isBye && !player2.isBye) {
                         Button(onClick = {
                             results = results.toMutableList().apply {
                                 this[index] = this[index].first to (1f to 0f) // 1:0
@@ -75,14 +72,12 @@ fun RoundScreen(
                         }) {
                             Text("0:1")
                         }
-                        if (system == "Szwajcarski") {
-                            Button(onClick = {
-                                results = results.toMutableList().apply {
-                                    this[index] = this[index].first to (0.5f to 0.5f) // 0.5:0.5
-                                }
-                            }) {
-                                Text("0.5:0.5")
+                        Button(onClick = {
+                            results = results.toMutableList().apply {
+                                this[index] = this[index].first to (0.5f to 0.5f) // 0.5:0.5
                             }
+                        }) {
+                            Text("0.5:0.5")
                         }
                     }
                 }
@@ -96,7 +91,6 @@ fun RoundScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Przycisk zakończenia rundy
         Button(
             onClick = { onRoundComplete(results) },
             modifier = Modifier.fillMaxWidth()
@@ -104,7 +98,6 @@ fun RoundScreen(
             Text("Zakończ rundę")
         }
 
-        // Przycisk powrotu do konfiguracji
         Button(
             onClick = onBackToSettings,
             modifier = Modifier.fillMaxWidth()
