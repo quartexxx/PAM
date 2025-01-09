@@ -41,9 +41,10 @@ class MainActivity : ComponentActivity() {
                 val selectedPlayers = remember { mutableStateListOf<Player>() }
                 val selectedPairs = remember { mutableStateListOf<Pair<Player, Player>>() }
                 val totalRounds = remember { mutableStateOf(0) }
+                val matchResults = remember { mutableStateListOf<Pair<Pair<Player, Player>, Pair<Float, Float>>>() }
                 val navController = rememberNavController()
 
-                // Pobierz zawodników z bazy przy starcie w LaunchedEffect
+                // Pobierz zawodników z bazy przy starcie
                 LaunchedEffect(Unit) {
                     val allPlayers = db.playerDao().getAllPlayers()
                     players.clear()
@@ -55,7 +56,8 @@ class MainActivity : ComponentActivity() {
                     content = { innerPadding ->
                         NavHost(
                             navController = navController,
-                            startDestination = "add_players"
+                            startDestination = "add_players",
+                            modifier = Modifier.padding(innerPadding) // Dodanie odpowiedniego paddingu
                         ) {
                             // Ekran dodawania zawodników
                             composable("add_players") {
@@ -94,34 +96,31 @@ class MainActivity : ComponentActivity() {
                                         }
                                     },
                                     onProceed = {
-                                        // Przejście do konfiguracji turnieju
                                         navController.navigate("configure_tournament")
                                     },
                                     onBackToAddPlayers = {
-                                        navController.navigate("add_players")
+                                        navController.navigate("add_players") // Teraz przekazujesz `navController` poprawnie
                                     },
                                     navController = navController
                                 )
                             }
 
+
                             // Ekran konfiguracji turnieju
                             composable("configure_tournament") {
                                 ConfigureTournamentScreen(
                                     selectedPlayers = selectedPlayers,
-                                    onStartTournament = { system, rounds, tieBreak ->
+                                    onStartTournament = { _, rounds, _ ->
                                         lifecycleScope.launch {
                                             selectedPairs.clear()
                                             totalRounds.value = rounds
 
-                                            // Generowanie par zawodników (np. system szwajcarski)
                                             val sortedPlayers = selectedPlayers.sortedBy { it.rating ?: 0 }
                                             for (i in sortedPlayers.indices step 2) {
                                                 if (i + 1 < sortedPlayers.size) {
                                                     selectedPairs.add(Pair(sortedPlayers[i], sortedPlayers[i + 1]))
                                                 }
                                             }
-
-                                            // Nawigacja do pierwszej rundy
                                             navController.navigate("round_screen/1")
                                         }
                                     },
@@ -138,17 +137,13 @@ class MainActivity : ComponentActivity() {
                                     roundNumber = roundNumber,
                                     pairs = selectedPairs,
                                     onRoundComplete = { results ->
-                                        println("Wyniki rundy $roundNumber: $results")
-
-                                        // Logika przejścia do następnej rundy lub zakończenia turnieju
+                                        matchResults.addAll(results)
                                         if (roundNumber < totalRounds.value) {
                                             val updatedPairs = generateNextRoundPairs(results)
                                             selectedPairs.clear()
                                             selectedPairs.addAll(updatedPairs)
-
                                             navController.navigate("round_screen/${roundNumber + 1}")
                                         } else {
-                                            println("Turniej zakończony!")
                                             navController.navigate("tournament_results")
                                         }
                                     },
@@ -160,12 +155,20 @@ class MainActivity : ComponentActivity() {
 
                             // Ekran wyników końcowych
                             composable("tournament_results") {
+                                val finalResults: Map<Player, Float> = matchResults
+                                    .flatMap { (pair, scores) ->
+                                        listOf(
+                                            pair.first to scores.first,
+                                            pair.second to scores.second
+                                        )
+                                    }
+                                    .groupBy({ it.first }, { it.second })
+                                    .mapValues { (_, scores) -> scores.sum() }
+
                                 TournamentResultsScreen(
-                                    players = selectedPlayers,
-                                    onBackToHome = {
-                                        navController.navigate("add_players") {
-                                            popUpTo("add_players") { inclusive = true }
-                                        }
+                                    results = finalResults,
+                                    onRestartTournament = {
+                                        navController.popBackStack("add_players", inclusive = true)
                                     }
                                 )
                             }
@@ -177,7 +180,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun generateNextRoundPairs(
-        results: List<Pair<Pair<Player, Player>, Pair<Int, Int>>>
+        results: List<Pair<Pair<Player, Player>, Pair<Float, Float>>>
     ): List<Pair<Player, Player>> {
         val updatedPlayers = results.flatMap { (pair, scores) ->
             listOf(

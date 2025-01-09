@@ -2,6 +2,7 @@ package com.example.chesstournamentmanager.ui
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -11,8 +12,8 @@ import com.example.chesstournamentmanager.data.Player
 
 @Composable
 fun TournamentResultsScreen(
-    players: List<Player>,
-    onBackToHome: () -> Unit
+    results: Map<Player, Float>,
+    onRestartTournament: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -22,26 +23,26 @@ fun TournamentResultsScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Wyniki Końcowe Turnieju",
-            style = androidx.compose.material3.MaterialTheme.typography.headlineSmall
+            text = "Wyniki końcowe",
+            style = MaterialTheme.typography.headlineSmall
         )
 
-        // Wyświetlanie listy zawodników i ich wyników
-        players.sortedByDescending { it.rating ?: 0 }.forEach { player ->
-            Text(
-                text = "${player.name}: ${player.rating ?: "Brak rankingu"} punktów",
-                modifier = Modifier.padding(vertical = 4.dp)
-            )
+        // Wyświetlanie wyników zawodników
+        results.entries.sortedByDescending { it.value }.forEach { (player, score) ->
+            Text(text = "${player.name}: ${score} pkt")
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        // Przycisk powrotu do głównego ekranu
+        // Przycisk rozpoczęcia nowego turnieju
         Button(
-            onClick = onBackToHome,
+            onClick = onRestartTournament,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Powrót do ekranu głównego")
+            Text("Rozpocznij nowy turniej")
         }
     }
 }
+
+
+

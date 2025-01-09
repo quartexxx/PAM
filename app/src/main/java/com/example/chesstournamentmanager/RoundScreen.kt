@@ -15,12 +15,12 @@ import com.example.chesstournamentmanager.data.Player
 fun RoundScreen(
     roundNumber: Int,
     pairs: List<Pair<Player, Player>>,
-    onRoundComplete: (List<Pair<Pair<Player, Player>, Pair<Int, Int>>>) -> Unit,
+    onRoundComplete: (List<Pair<Pair<Player, Player>, Pair<Float, Float>>>) -> Unit,
     onBackToSettings: () -> Unit
 ) {
     // Przechowywanie wyników każdej pary
     var results by remember {
-        mutableStateOf(pairs.map { it to (0 to 0) }) // Typ danych to Pair<Pair<Player, Player>, Pair<Int, Int>>
+        mutableStateOf(pairs.map { it to (0f to 0f) }) // Domyślny wynik: remis
     }
 
     Column(
@@ -35,7 +35,7 @@ fun RoundScreen(
             style = MaterialTheme.typography.headlineSmall
         )
 
-        // Wyświetlanie par zawodników z polami na wyniki
+        // Wyświetlanie par zawodników z przyciskami wyboru wyniku
         results.forEachIndexed { index, pairResult ->
             val (player1, player2) = pairResult.first
             val (score1, score2) = pairResult.second
@@ -45,36 +45,38 @@ fun RoundScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Zawodnik 1
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(text = player1.name)
-                    TextField(
-                        value = score1.toString(),
-                        onValueChange = { score ->
-                            results = results.toMutableList().apply {
-                                val newScore = score.toIntOrNull() ?: 0
-                                this[index] = this[index].first to (newScore to this[index].second.second)
-                            }
-                        },
-                        modifier = Modifier.width(60.dp)
-                    )
+                    Text(text = "Punkty: $score1")
                 }
 
-                Text("vs")
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Button(onClick = {
+                        results = results.toMutableList().apply {
+                            this[index] = this[index].first to (1f to 0f) // 1:0
+                        }
+                    }) {
+                        Text("1:0")
+                    }
+                    Button(onClick = {
+                        results = results.toMutableList().apply {
+                            this[index] = this[index].first to (0f to 1f) // 0:1
+                        }
+                    }) {
+                        Text("0:1")
+                    }
+                    Button(onClick = {
+                        results = results.toMutableList().apply {
+                            this[index] = this[index].first to (0.5f to 0.5f) // 0.5:0.5
+                        }
+                    }) {
+                        Text("0.5:0.5")
+                    }
+                }
 
-                // Zawodnik 2
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(text = player2.name)
-                    TextField(
-                        value = score2.toString(),
-                        onValueChange = { score ->
-                            results = results.toMutableList().apply {
-                                val newScore = score.toIntOrNull() ?: 0
-                                this[index] = this[index].first to (this[index].second.first to newScore)
-                            }
-                        },
-                        modifier = Modifier.width(60.dp)
-                    )
+                    Text(text = "Punkty: $score2")
                 }
             }
         }
@@ -98,3 +100,4 @@ fun RoundScreen(
         }
     }
 }
+
