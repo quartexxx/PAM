@@ -182,7 +182,6 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onRestartTournament = {
                                         lifecycleScope.launch {
-                                            db.playerDao().deleteAllPlayers()
                                             selectedPlayers.clear()
                                             selectedPairs.clear()
                                             matchResults.clear()

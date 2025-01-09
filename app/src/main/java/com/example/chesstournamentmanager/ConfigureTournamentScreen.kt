@@ -19,9 +19,17 @@ fun ConfigureTournamentScreen(
 ) {
     var selectedSystem by remember { mutableStateOf("Szwajcarski") }
     var isSystemDropdownExpanded by remember { mutableStateOf(false) }
-    var numberOfRounds by remember { mutableStateOf(ceil(log2(selectedPlayers.size.toDouble())).toInt()) }
     var selectedTieBreakMethod by remember { mutableStateOf("Buchholz") }
     var isTieBreakDropdownExpanded by remember { mutableStateOf(false) }
+
+    // Obliczanie liczby rund automatycznie na podstawie systemu
+    val calculatedRounds = if (selectedSystem == "Szwajcarski") {
+        ceil(log2(selectedPlayers.size.toDouble())).toInt()
+    } else if (selectedSystem == "Pucharowy") {
+        ceil(log2(selectedPlayers.size.toDouble())).toInt()
+    } else {
+        1
+    }
 
     Column(
         modifier = Modifier
@@ -56,7 +64,6 @@ fun ConfigureTournamentScreen(
                     text = { Text("Szwajcarski") },
                     onClick = {
                         selectedSystem = "Szwajcarski"
-                        numberOfRounds = ceil(log2(selectedPlayers.size.toDouble())).toInt() // Automatyczne ustawienie liczby rund
                         isSystemDropdownExpanded = false
                     }
                 )
@@ -70,26 +77,17 @@ fun ConfigureTournamentScreen(
             }
         }
 
-        // Wybór liczby rund
+        // Wyświetlanie liczby rund
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(text = "Liczba rund:")
-            Slider(
-                value = numberOfRounds.toFloat(),
-                onValueChange = { numberOfRounds = it.toInt() },
-                valueRange = 1f..10f,
-                steps = 9,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .alpha(if (selectedSystem == "Pucharowy") 1f else 0.5f),
-                enabled = selectedSystem == "Pucharowy" // Suwak aktywny tylko w systemie pucharowym
-            )
             Text(
-                text = if (selectedSystem == "Szwajcarski")
-                    "$numberOfRounds rund (obliczone automatycznie)"
-                else
-                    "$numberOfRounds rund",
+                text = if (selectedSystem == "Szwajcarski") {
+                    "$calculatedRounds rund (system szwajcarski)"
+                } else {
+                    "$calculatedRounds rund (system pucharowy)"
+                },
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
         }
@@ -128,7 +126,7 @@ fun ConfigureTournamentScreen(
 
         // Przycisk rozpoczęcia turnieju
         Button(
-            onClick = { onStartTournament(selectedSystem, numberOfRounds, selectedTieBreakMethod) },
+            onClick = { onStartTournament(selectedSystem, calculatedRounds, selectedTieBreakMethod) },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Rozpocznij turniej")
@@ -143,4 +141,5 @@ fun ConfigureTournamentScreen(
         }
     }
 }
+
 
