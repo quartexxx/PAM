@@ -15,6 +15,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -41,6 +42,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             ChessTournamentManagerTheme {
+                val players = remember { mutableStateListOf<Player>() } // Lista zawodników
+
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     content = { innerPadding ->
@@ -48,13 +51,23 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier.padding(innerPadding),
                             onAddPlayer = { name, rating ->
                                 lifecycleScope.launch {
-                                    db.playerDao().insert(Player(name = name, rating = rating))
-                                    println("Dodano zawodnika: $name, Ranking: ${rating ?: "Brak"}")
+                                    val player = Player(name = name, rating = rating)
+                                    db.playerDao().insert(player) // Dodanie zawodnika do bazy
+                                    players.clear()
+                                    players.addAll(db.playerDao().getAllPlayers()) // Pobranie wszystkich zawodników
+                                }
+                            },
+                            players = players, // Przekazanie listy zawodników
+                            onClearPlayers = {
+                                lifecycleScope.launch {
+                                    db.playerDao().deleteAllPlayers() // Usunięcie wszystkich zawodników z bazy
+                                    players.clear() // Wyczyszczenie listy w pamięci
                                 }
                             }
                         )
                     }
                 )
+
             }
         }
     }
@@ -63,7 +76,9 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AddPlayerScreen(
     modifier: Modifier = Modifier,
-    onAddPlayer: (String, Int?) -> Unit
+    onAddPlayer: (String, Int?) -> Unit,
+    players: List<Player>,
+    onClearPlayers: () -> Unit // Dodaj obsługę czyszczenia
 ) {
     var playerName = remember { mutableStateOf("") }
     var playerRating = remember { mutableStateOf("") }
@@ -74,6 +89,7 @@ fun AddPlayerScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        // Pole tekstowe: Imię i nazwisko zawodnika
         TextField(
             value = playerName.value,
             onValueChange = { playerName.value = it },
@@ -81,6 +97,7 @@ fun AddPlayerScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
+        // Pole tekstowe: Ranking
         TextField(
             value = playerRating.value,
             onValueChange = { playerRating.value = it },
@@ -89,6 +106,7 @@ fun AddPlayerScreen(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
         )
 
+        // Przycisk "Dodaj zawodnika"
         Button(
             onClick = {
                 val name = playerName.value.trim()
@@ -104,5 +122,25 @@ fun AddPlayerScreen(
         ) {
             Text("Dodaj zawodnika")
         }
+
+        // Przycisk "Wyczyść listę zawodników"
+        Button(
+            onClick = { onClearPlayers() }, // Wywołanie funkcji czyszczenia
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Wyczyść listę zawodników")
+        }
+
+        // Wyświetlanie listy zawodników
+        Column(
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(top = 16.dp)
+        ) {
+            Text("Lista zawodników:")
+            players.forEach { player ->
+                Text(text = "${player.name} (Ranking: ${player.rating ?: "Brak"})")
+            }
+        }
     }
 }
+
