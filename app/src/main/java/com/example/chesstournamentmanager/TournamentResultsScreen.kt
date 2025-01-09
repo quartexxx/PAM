@@ -28,13 +28,22 @@ fun TournamentResultsScreen(
             style = MaterialTheme.typography.headlineSmall
         )
 
-        if (system == "Pucharowy" && results.size == 1) {
+        if (system == "Pucharowy") {
             // Dla systemu pucharowego wyświetl zwycięzcę
-            val winner = results.keys.first()
-            Text(
-                text = "Zwycięzca turnieju: ${winner.name}",
-                style = MaterialTheme.typography.titleMedium
-            )
+            if (results.isNotEmpty()) {
+                val winner = results.entries.maxByOrNull { it.value }?.key
+                winner?.let {
+                    Text(
+                        text = "Zwycięzca turnieju: ${it.name}",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+            } else {
+                Text(
+                    text = "Nie udało się określić zwycięzcy.",
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
         } else {
             // Dla innych systemów wyświetl pełną tabelę wyników
             results.entries.sortedByDescending { it.value }.forEach { (player, score) ->
@@ -52,4 +61,5 @@ fun TournamentResultsScreen(
         }
     }
 }
+
 
