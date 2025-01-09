@@ -19,11 +19,23 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
+import androidx.room.Room
+import com.example.chesstournamentmanager.data.AppDatabase
+import com.example.chesstournamentmanager.data.Player
 import com.example.chesstournamentmanager.ui.theme.ChessTournamentManagerTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+
+    private val db by lazy {
+        Room.databaseBuilder(
+            applicationContext,
+            AppDatabase::class.java, "chess-database"
+        ).build()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -35,8 +47,10 @@ class MainActivity : ComponentActivity() {
                         AddPlayerScreen(
                             modifier = Modifier.padding(innerPadding),
                             onAddPlayer = { name, rating ->
-                                // Na razie wyświetlamy dane w konsoli
-                                println("Dodano zawodnika: $name z rankingiem $rating")
+                                lifecycleScope.launch {
+                                    db.playerDao().insert(Player(name = name, rating = rating))
+                                    println("Dodano zawodnika: $name, Ranking: ${rating ?: "Brak"}")
+                                }
                             }
                         )
                     }
@@ -44,8 +58,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-
 }
 
 @Composable
@@ -94,6 +106,3 @@ fun AddPlayerScreen(
         }
     }
 }
-
-
-
