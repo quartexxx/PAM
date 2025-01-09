@@ -50,6 +50,7 @@ class MainActivity : ComponentActivity() {
                 val byePlayer = Player(name = "Wolny Los", isBye = true)
                 val selectedSystem = remember { mutableStateOf("Szwajcarski") } // Przechowywanie wybranego systemu
                 val navController = rememberNavController()
+                val selectedTieBreak = remember { mutableStateOf("Progres") } // Domyślna metoda remisów
 
                 LaunchedEffect(Unit) {
                     val allPlayers = db.playerDao().getAllPlayers()
@@ -175,15 +176,17 @@ class MainActivity : ComponentActivity() {
                             }
 
                             composable("tournament_results") {
-                                val finalResults = calculateFinalResults(
-                                    matchResults, selectedSystem.value
+                                val finalResults = calculateTieBreakResults(
+                                    matchResults = matchResults,
+                                    tieBreak = selectedTieBreak.value
                                 )
 
                                 TournamentResultsScreen(
                                     results = finalResults,
-                                    system = selectedSystem.value,
+                                    system = selectedSystem.value, // Przekazanie wybranego systemu turniejowego
                                     onRestartTournament = {
                                         lifecycleScope.launch {
+                                            // Resetowanie stanu turnieju
                                             selectedPlayers.clear()
                                             selectedPairs.clear()
                                             matchResults.clear()
@@ -196,6 +199,8 @@ class MainActivity : ComponentActivity() {
                                     }
                                 )
                             }
+
+
                         }
                     }
                 )
@@ -279,4 +284,42 @@ class MainActivity : ComponentActivity() {
             if (winner != null) mapOf(winner to 1f) else emptyMap()
         }
     }
+    private fun calculateTieBreakResults(
+        matchResults: List<Pair<Pair<Player, Player>, Pair<Float, Float>>>,
+        tieBreak: String
+    ): Map<Player, Float> {
+        return when (tieBreak) {
+            "Progres" -> calculateProgress(matchResults)
+            "Sumaryczny" -> calculateSumaryczny(matchResults)
+            else -> emptyMap()
+        }
+    }
+
+    // System Progres (już zaimplementowany)
+    private fun calculateProgress(
+        matchResults: List<Pair<Pair<Player, Player>, Pair<Float, Float>>>
+    ): Map<Player, Float> {
+        val cumulativeScores = mutableMapOf<Player, Float>()
+        val progressScores = mutableMapOf<Player, Float>()
+
+        matchResults.forEach { (pair, scores) ->
+            cumulativeScores[pair.first] = (cumulativeScores[pair.first] ?: 0f) + scores.first
+            cumulativeScores[pair.second] = (cumulativeScores[pair.second] ?: 0f) + scores.second
+            progressScores[pair.first] = (progressScores[pair.first] ?: 0f) + cumulativeScores[pair.first]!!
+            progressScores[pair.second] = (progressScores[pair.second] ?: 0f) + cumulativeScores[pair.second]!!
+        }
+
+        return progressScores
+    }
+
+    // System Sumaryczny
+    private fun calculateSumaryczny(
+        matchResults: List<Pair<Pair<Player, Player>, Pair<Float, Float>>>
+    ): Map<Player, Float> {
+        return matchResults.flatMap { (pair, scores) ->
+            listOf(pair.first to scores.first, pair.second to scores.second)
+        }.groupBy({ it.first }, { it.second })
+            .mapValues { (_, scores) -> scores.sum() }
+    }
+
 }

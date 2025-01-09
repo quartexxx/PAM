@@ -14,18 +14,16 @@ import kotlin.math.log2
 @Composable
 fun ConfigureTournamentScreen(
     selectedPlayers: List<Player>,
-    onStartTournament: (String, Int, String) -> Unit,
+    onStartTournament: (String, Int, String) -> Unit, // Dodajemy system remisów
     onBackToSelectPlayers: () -> Unit
 ) {
     var selectedSystem by remember { mutableStateOf("Szwajcarski") }
+    var selectedTieBreakMethod by remember { mutableStateOf("Progres") } // Domyślnie Progres
     var isSystemDropdownExpanded by remember { mutableStateOf(false) }
-    var selectedTieBreakMethod by remember { mutableStateOf("Buchholz") }
     var isTieBreakDropdownExpanded by remember { mutableStateOf(false) }
 
-    // Obliczanie liczby rund automatycznie na podstawie systemu
-    val calculatedRounds = if (selectedSystem == "Szwajcarski") {
-        ceil(log2(selectedPlayers.size.toDouble())).toInt()
-    } else if (selectedSystem == "Pucharowy") {
+    // Obliczanie liczby rund automatycznie
+    val calculatedRounds = if (selectedSystem == "Szwajcarski" || selectedSystem == "Pucharowy") {
         ceil(log2(selectedPlayers.size.toDouble())).toInt()
     } else {
         1
@@ -38,17 +36,11 @@ fun ConfigureTournamentScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = "Konfiguracja turnieju",
-            style = MaterialTheme.typography.headlineSmall
-        )
-
+        Text(text = "Konfiguracja turnieju", style = MaterialTheme.typography.headlineSmall)
         Text("Wybrano zawodników: ${selectedPlayers.size}")
 
         // Wybór systemu turnieju
-        Column(
-            modifier = Modifier.fillMaxWidth()
-        ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             Text(text = "System turnieju:")
             Button(
                 onClick = { isSystemDropdownExpanded = true },
@@ -77,26 +69,9 @@ fun ConfigureTournamentScreen(
             }
         }
 
-        // Wyświetlanie liczby rund
-        Column(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(text = "Liczba rund:")
-            Text(
-                text = if (selectedSystem == "Szwajcarski") {
-                    "$calculatedRounds rund (system szwajcarski)"
-                } else {
-                    "$calculatedRounds rund (system pucharowy)"
-                },
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
-        }
-
-        // Wybór metody remisów
-        Column(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(text = "Metoda remisów:")
+        // Wybór systemu remisów
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(text = "System remisów:")
             Button(
                 onClick = { isTieBreakDropdownExpanded = true },
                 modifier = Modifier.fillMaxWidth()
@@ -108,16 +83,16 @@ fun ConfigureTournamentScreen(
                 onDismissRequest = { isTieBreakDropdownExpanded = false }
             ) {
                 DropdownMenuItem(
-                    text = { Text("Buchholz") },
+                    text = { Text("Progres") },
                     onClick = {
-                        selectedTieBreakMethod = "Buchholz"
+                        selectedTieBreakMethod = "Progres"
                         isTieBreakDropdownExpanded = false
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Progres") },
+                    text = { Text("Sumaryczny") },
                     onClick = {
-                        selectedTieBreakMethod = "Progres"
+                        selectedTieBreakMethod = "Sumaryczny"
                         isTieBreakDropdownExpanded = false
                     }
                 )
