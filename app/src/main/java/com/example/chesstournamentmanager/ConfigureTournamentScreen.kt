@@ -5,8 +5,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import com.example.chesstournamentmanager.data.Player
+import kotlin.math.ceil
+import kotlin.math.log2
 
 @Composable
 fun ConfigureTournamentScreen(
@@ -16,7 +19,7 @@ fun ConfigureTournamentScreen(
 ) {
     var selectedSystem by remember { mutableStateOf("Szwajcarski") }
     var isSystemDropdownExpanded by remember { mutableStateOf(false) }
-    var numberOfRounds by remember { mutableStateOf(5) }
+    var numberOfRounds by remember { mutableStateOf(ceil(log2(selectedPlayers.size.toDouble())).toInt()) }
     var selectedTieBreakMethod by remember { mutableStateOf("Buchholz") }
     var isTieBreakDropdownExpanded by remember { mutableStateOf(false) }
 
@@ -53,6 +56,7 @@ fun ConfigureTournamentScreen(
                     text = { Text("Szwajcarski") },
                     onClick = {
                         selectedSystem = "Szwajcarski"
+                        numberOfRounds = ceil(log2(selectedPlayers.size.toDouble())).toInt() // Automatyczne ustawienie liczby rund
                         isSystemDropdownExpanded = false
                     }
                 )
@@ -76,9 +80,18 @@ fun ConfigureTournamentScreen(
                 onValueChange = { numberOfRounds = it.toInt() },
                 valueRange = 1f..10f,
                 steps = 9,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .alpha(if (selectedSystem == "Pucharowy") 1f else 0.5f),
+                enabled = selectedSystem == "Pucharowy" // Suwak aktywny tylko w systemie pucharowym
             )
-            Text(text = "$numberOfRounds rund", modifier = Modifier.align(Alignment.CenterHorizontally))
+            Text(
+                text = if (selectedSystem == "Szwajcarski")
+                    "$numberOfRounds rund (obliczone automatycznie)"
+                else
+                    "$numberOfRounds rund",
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
         }
 
         // Wybór metody remisów
@@ -130,3 +143,4 @@ fun ConfigureTournamentScreen(
         }
     }
 }
+

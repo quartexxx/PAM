@@ -22,6 +22,8 @@ import com.example.chesstournamentmanager.data.Player
 import com.example.chesstournamentmanager.ui.TournamentResultsScreen
 import com.example.chesstournamentmanager.ui.theme.ChessTournamentManagerTheme
 import kotlinx.coroutines.launch
+import kotlin.math.ceil
+import kotlin.math.log2
 
 class MainActivity : ComponentActivity() {
 
@@ -29,8 +31,11 @@ class MainActivity : ComponentActivity() {
         Room.databaseBuilder(
             applicationContext,
             AppDatabase::class.java, "chess-database"
-        ).build()
+        )
+            .fallbackToDestructiveMigration() // Użyj destrukcyjnej migracji
+            .build()
     }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,6 +47,8 @@ class MainActivity : ComponentActivity() {
                 val selectedPairs = remember { mutableStateListOf<Pair<Player, Player>>() }
                 val totalRounds = remember { mutableStateOf(0) }
                 val matchResults = remember { mutableStateListOf<Pair<Pair<Player, Player>, Pair<Float, Float>>>() }
+                val playedPairs = remember { mutableSetOf<Pair<Player, Player>>() }
+                val byePlayer = Player(name = "Wolny Los", isBye = true) // Definiowanie "Wolnego Losu"
                 val navController = rememberNavController()
 
                 // Pobierz zawodników z bazy przy starcie
@@ -57,7 +64,7 @@ class MainActivity : ComponentActivity() {
                         NavHost(
                             navController = navController,
                             startDestination = "add_players",
-                            modifier = Modifier.padding(innerPadding) // Dodanie odpowiedniego paddingu
+                            modifier = Modifier.padding(innerPadding)
                         ) {
                             // Ekran dodawania zawodników
                             composable("add_players") {
@@ -99,26 +106,40 @@ class MainActivity : ComponentActivity() {
                                         navController.navigate("configure_tournament")
                                     },
                                     onBackToAddPlayers = {
-                                        navController.navigate("add_players") // Teraz przekazujesz `navController` poprawnie
+                                        navController.navigate("add_players")
                                     },
                                     navController = navController
                                 )
                             }
 
-
                             // Ekran konfiguracji turnieju
                             composable("configure_tournament") {
                                 ConfigureTournamentScreen(
                                     selectedPlayers = selectedPlayers,
-                                    onStartTournament = { _, rounds, _ ->
+                                    onStartTournament = { system, _, _ ->
                                         lifecycleScope.launch {
                                             selectedPairs.clear()
-                                            totalRounds.value = rounds
+                                            matchResults.clear()
+                                            playedPairs.clear()
 
-                                            val sortedPlayers = selectedPlayers.sortedBy { it.rating ?: 0 }
+                                            // System szwajcarski: liczba rund zależna od liczby graczy
+                                            if (system == "Szwajcarski") {
+                                                totalRounds.value = ceil(log2(selectedPlayers.size.toDouble())).toInt()
+                                            }
+
+                                            // Dodaj "Wolnego Losa", jeśli liczba graczy jest nieparzysta
+                                            val playersForPairing = selectedPlayers.toMutableList()
+                                            if (playersForPairing.size % 2 != 0) {
+                                                playersForPairing.add(byePlayer)
+                                            }
+
+                                            val sortedPlayers = playersForPairing.sortedBy { it.rating ?: 0 }
                                             for (i in sortedPlayers.indices step 2) {
                                                 if (i + 1 < sortedPlayers.size) {
-                                                    selectedPairs.add(Pair(sortedPlayers[i], sortedPlayers[i + 1]))
+                                                    val pair = Pair(sortedPlayers[i], sortedPlayers[i + 1])
+                                                    selectedPairs.add(pair)
+                                                    playedPairs.add(pair)
+                                                    playedPairs.add(Pair(sortedPlayers[i + 1], sortedPlayers[i]))
                                                 }
                                             }
                                             navController.navigate("round_screen/1")
@@ -137,13 +158,20 @@ class MainActivity : ComponentActivity() {
                                     roundNumber = roundNumber,
                                     pairs = selectedPairs,
                                     onRoundComplete = { results ->
+                                        // Dodaj wyniki rundy do wyników turnieju
                                         matchResults.addAll(results)
+
+                                        // Sprawdź, czy to ostatnia runda
                                         if (roundNumber < totalRounds.value) {
-                                            val updatedPairs = generateNextRoundPairs(results)
+                                            // Generuj nowe pary
+                                            val updatedPairs = generateNextRoundPairs(results, playedPairs, byePlayer)
                                             selectedPairs.clear()
                                             selectedPairs.addAll(updatedPairs)
+
+                                            // Nawiguj do kolejnej rundy
                                             navController.navigate("round_screen/${roundNumber + 1}")
                                         } else {
+                                            // Przejdź do wyników końcowych
                                             navController.navigate("tournament_results")
                                         }
                                     },
@@ -168,6 +196,11 @@ class MainActivity : ComponentActivity() {
                                 TournamentResultsScreen(
                                     results = finalResults,
                                     onRestartTournament = {
+                                        selectedPlayers.clear()
+                                        selectedPairs.clear()
+                                        matchResults.clear()
+                                        playedPairs.clear()
+                                        totalRounds.value = 0
                                         navController.popBackStack("add_players", inclusive = true)
                                     }
                                 )
@@ -180,7 +213,9 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun generateNextRoundPairs(
-        results: List<Pair<Pair<Player, Player>, Pair<Float, Float>>>
+        results: List<Pair<Pair<Player, Player>, Pair<Float, Float>>>,
+        playedPairs: MutableSet<Pair<Player, Player>>,
+        byePlayer: Player
     ): List<Pair<Player, Player>> {
         val updatedPlayers = results.flatMap { (pair, scores) ->
             listOf(
@@ -189,14 +224,37 @@ class MainActivity : ComponentActivity() {
             )
         }.groupBy({ it.first }, { it.second })
             .map { (player, scores) -> player to scores.sum() }
-            .sortedByDescending { it.second }
+            .sortedByDescending { it.second } // Sortuj graczy według punktów
 
         val pairs = mutableListOf<Pair<Player, Player>>()
-        for (i in updatedPlayers.indices step 2) {
-            if (i + 1 < updatedPlayers.size) {
-                pairs.add(Pair(updatedPlayers[i].first, updatedPlayers[i + 1].first))
+
+        // Twórz nowe pary, unikając rozegranych par
+        val remainingPlayers = updatedPlayers.map { it.first }.toMutableList()
+        if (remainingPlayers.size % 2 != 0) {
+            remainingPlayers.add(byePlayer)
+        }
+
+        while (remainingPlayers.size > 1) {
+            val player1 = remainingPlayers.removeAt(0)
+            val opponent = remainingPlayers.firstOrNull { player2 ->
+                val newPair = Pair(player1, player2).sorted()
+                newPair !in playedPairs
+            }
+
+            if (opponent != null) {
+                remainingPlayers.remove(opponent)
+                val newPair = Pair(player1, opponent).sorted()
+                pairs.add(newPair)
+                playedPairs.add(newPair)
+            } else {
+                remainingPlayers.add(player1) // Jeśli nie można znaleźć przeciwnika, dodaj gracza na koniec kolejki
             }
         }
+
         return pairs
+    }
+
+    private fun Pair<Player, Player>.sorted(): Pair<Player, Player> {
+        return if (first.name < second.name) this else Pair(second, first)
     }
 }
